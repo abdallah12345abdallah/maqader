@@ -1,0 +1,235 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/cairo';
+@import '@fontsource/almarai/400.css';
+@import '@fontsource/almarai/700.css';
+@import '@fontsource/almarai/800.css';
+
+/* ===========================================================
+   مقادير — Neo-brutalist design system
+   كل الألوان والظلال والحدود من هنا. لا hex داخل الكومبوننتس.
+   =========================================================== */
+@theme {
+  --font-sans: 'Cairo Variable', 'Cairo', system-ui, sans-serif;
+  --font-display: 'Almarai', 'Cairo Variable', system-ui, sans-serif;
+
+  /* سطح الورق + الحبر */
+  --color-paper: #fffdf5;
+  --color-paper-2: #f6f1e4;
+  --color-ink: #14110f;
+  --color-ink-soft: #4a423c;
+  --color-line: #14110f;
+
+  /* الألوان الصريحة */
+  --color-tomato: #ff4d2e;
+  --color-tomato-soft: #ffd9d0;
+  --color-saffron: #ffc300;
+  --color-saffron-soft: #fff0bd;
+  --color-basil: #12b76a;
+  --color-basil-soft: #c9f5df;
+  --color-berry: #7c3aed;
+  --color-berry-soft: #e4d8ff;
+  --color-sky: #2bb3ff;
+  --color-sky-soft: #d2ecff;
+  --color-plum: #ff2d8a;
+  --color-plum-soft: #ffd6e8;
+
+  /* دلالات */
+  --color-primary: var(--color-tomato);
+  --color-danger: #e5362b;
+  --color-warn: var(--color-saffron);
+  --color-ok: var(--color-basil);
+
+  --radius-brut: 14px;
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 800;
+}
+
+/* الوضع الداكن — نفس اللغة البصرية، حبر مقلوب */
+.dark {
+  --color-paper: #15120f;
+  --color-paper-2: #1f1b17;
+  --color-ink: #fffdf5;
+  --color-ink-soft: #bdb3a8;
+  --color-line: #fffdf5;
+  --color-tomato-soft: #4a1d13;
+  --color-saffron-soft: #453400;
+  --color-basil-soft: #0c3f27;
+  --color-berry-soft: #2c1a55;
+  --color-sky-soft: #0d3550;
+  --color-plum-soft: #4d0f2b;
+}
+
+@layer base {
+  :root {
+    /* اتجاه ظل الـ offset — يتعكس في RTL تلقائيًا */
+    --brut-x: -1;
+    color-scheme: light;
+  }
+  html[dir='ltr'] {
+    --brut-x: 1;
+  }
+  html[dir='rtl'] {
+    --brut-x: -1;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+
+  * { border-color: var(--color-line); }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    background-image:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-ink) 16%, transparent) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.01em; }
+
+  ::-webkit-scrollbar { width: 12px; height: 12px; }
+  ::-webkit-scrollbar-track { background: var(--color-paper-2); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink);
+    border: 3px solid var(--color-paper-2);
+    border-radius: 99px;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-berry);
+    outline-offset: 2px;
+  }
+  input, select, textarea, button { font-family: inherit; font-weight: 700; }
+}
+
+/* ============ أدوات البروتاليزم ============ */
+
+/* إطار أسود سميك */
+@utility brut {
+  border-width: 3px;
+  border-color: var(--color-line);
+  border-radius: var(--radius-brut);
+}
+@utility brut-thin {
+  border-width: 2px;
+  border-color: var(--color-line);
+  border-radius: calc(var(--radius-brut) - 4px);
+}
+
+/* الظل الصلب — بدون blur، ومعكوس في RTL */
+@utility shadow-brut {
+  box-shadow: calc(5px * var(--brut-x)) 5px 0 0 var(--color-line);
+}
+@utility shadow-brut-sm {
+  box-shadow: calc(3px * var(--brut-x)) 3px 0 0 var(--color-line);
+}
+@utility shadow-brut-lg {
+  box-shadow: calc(8px * var(--brut-x)) 8px 0 0 var(--color-line);
+}
+@utility shadow-brut-none {
+  box-shadow: 0 0 0 0 var(--color-line);
+}
+
+/* حركة الضغط: الكارت بيروح ناحية ظله */
+@utility press {
+  transition: transform 90ms ease-out, box-shadow 90ms ease-out, background-color 120ms ease-out;
+}
+@utility press-on {
+  transform: translate(calc(3px * var(--brut-x)), 3px);
+  box-shadow: calc(2px * var(--brut-x)) 2px 0 0 var(--color-line);
+}
+
+/* عنصر قابل للضغط: بيروح ناحية ظله عند الهوفر، وبيلتصق عند الضغط */
+@utility brut-press {
+  transition: transform 90ms ease-out, box-shadow 90ms ease-out, background-color 120ms ease-out;
+  box-shadow: calc(5px * var(--brut-x)) 5px 0 0 var(--color-line);
+  &:hover:not(:disabled):not([aria-disabled='true']) {
+    transform: translate(calc(2px * var(--brut-x)), 2px);
+    box-shadow: calc(3px * var(--brut-x)) 3px 0 0 var(--color-line);
+  }
+  &:active:not(:disabled):not([aria-disabled='true']) {
+    transform: translate(calc(5px * var(--brut-x)), 5px);
+    box-shadow: 0 0 0 0 var(--color-line);
+  }
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+@utility brut-press-sm {
+  transition: transform 90ms ease-out, box-shadow 90ms ease-out, background-color 120ms ease-out;
+  box-shadow: calc(3px * var(--brut-x)) 3px 0 0 var(--color-line);
+  &:hover:not(:disabled) {
+    transform: translate(calc(1px * var(--brut-x)), 1px);
+    box-shadow: calc(2px * var(--brut-x)) 2px 0 0 var(--color-line);
+  }
+  &:active:not(:disabled) {
+    transform: translate(calc(3px * var(--brut-x)), 3px);
+    box-shadow: 0 0 0 0 var(--color-line);
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+/* شريط مائل مخطط — للحالات الفارغة والتحذيرات */
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--color-ink) 12%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+@keyframes brut-pop {
+  0% { transform: scale(0.94) translateY(6px); opacity: 0 }
+  100% { transform: scale(1) translateY(0); opacity: 1 }
+}
+@keyframes brut-pulse {
+  0%, 100% { box-shadow: calc(5px * var(--brut-x)) 5px 0 0 var(--color-line) }
+  50% { box-shadow: calc(5px * var(--brut-x)) 5px 0 0 var(--color-tomato) }
+}
+@keyframes marquee-rtl {
+  from { transform: translateX(0) }
+  to { transform: translateX(50%) }
+}
+@utility animate-pop { animation: brut-pop 160ms cubic-bezier(.2,1.3,.4,1) both; }
+@utility animate-brut-pulse { animation: brut-pulse 1.4s ease-in-out infinite; }
+
+/* طباعة الفواتير والتقارير */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .brut, .brut-thin { box-shadow: none !important; }
+}
+
+/* طباعة الفاتورة وحدها */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt,
+  #receipt * {
+    visibility: visible;
+  }
+  #receipt {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    margin: 0 auto;
+    width: 80mm;
+    border: 0;
+  }
+}

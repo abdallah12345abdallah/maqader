@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": { "@/*": ["./src/*"] },
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["src/**/*", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"]
+}
