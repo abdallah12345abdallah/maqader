@@ -83,6 +83,11 @@ const SCREENS = [
   ['JournalView', '/accounting/journal', () => import('../src/views/accounting/JournalView.vue')],
   ['ExpensesView', '/accounting/expenses', () => import('../src/views/accounting/ExpensesView.vue')],
   ['ShiftsView', '/accounting/shifts', () => import('../src/views/accounting/ShiftsView.vue')],
+  ['SupportView', '/support', () => import('../src/views/support/SupportView.vue')],
+  ['TicketView', '/support/tickets/SUP-0024', () => import('../src/views/support/TicketView.vue')],
+  ['TicketView (closed)', '/support/tickets/SUP-0005', () => import('../src/views/support/TicketView.vue')],
+  ['KnowledgeView', '/support/kb', () => import('../src/views/support/KnowledgeView.vue')],
+  ['HealthView', '/support/health', () => import('../src/views/support/HealthView.vue')],
   ['SettingsView', '/settings', () => import('../src/views/settings/SettingsView.vue')],
   ['AppSidebar', '/', () => import('../src/layouts/AppSidebar.vue')],
   ['AppTopbar', '/', () => import('../src/layouts/AppTopbar.vue')],
@@ -102,6 +107,7 @@ for (const [name, path, loader] of SCREENS) {
       routes: [
         // لازم نعرّف مسار الـ param الحقيقي، وإلا شاشة التفاصيل ترسم حالة "غير موجود"
         { path: '/recipes/:id', component: { render: () => h('div') }, meta: { titleKey: 'nav.recipesList' } },
+        { path: '/support/tickets/:id', component: { render: () => h('div') }, meta: { titleKey: 'nav.supportTickets' } },
         { path: '/:pathMatch(.*)*', component: { render: () => h('div') }, meta: { titleKey: 'nav.dashboard' } },
       ],
     })
@@ -119,6 +125,9 @@ for (const [name, path, loader] of SCREENS) {
     // تسجيل دخول + توليد البيانات مرة واحدة ثم إعادة استخدامها
     const auth = useAuthStore(pinia)
     auth.loginWithPin('1111')
+    const { useSupportStore } = await import('../src/stores/support.js')
+    const support = useSupportStore(pinia)
+    support.init()
     const ops = useOpsStore(pinia)
     if (!seedOnce) {
       ops.init()

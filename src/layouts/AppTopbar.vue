@@ -2,13 +2,14 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Menu, Moon, Sun, Languages, LogOut, Store, ScanLine, ChefHat } from 'lucide-vue-next'
+import { Menu, Moon, Sun, Languages, LogOut, Store, ScanLine, ChefHat, LifeBuoy } from 'lucide-vue-next'
 import { NButton, NSelect } from '@/components/ui'
 import { BRANCHES, ROLES } from '@/data/org'
 import { cn } from '@/lib/utils'
 import { TONES } from '@/lib/constants'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { useSupportStore } from '@/stores/support'
 import { useFmt } from '@/composables/useFmt'
 
 const emit = defineEmits(['toggle-drawer'])
@@ -17,11 +18,15 @@ const router = useRouter()
 const { t } = useI18n()
 const auth = useAuthStore()
 const ui = useUiStore()
+const support = useSupportStore()
 const fmt = useFmt()
 
 const branchOptions = computed(() => BRANCHES.map((b) => ({ value: b.id, label: fmt.name(b) })))
 const userTone = computed(() => (TONES[auth.user?.tone] || TONES.ink).soft)
 const pageTitle = computed(() => (route.meta?.titleKey ? t(route.meta.titleKey) : t('common.appName')))
+
+/** تذاكر دعم محتاجة رد العميل — تظهر كشارة على زر المساعدة */
+const supportBadge = computed(() => support.metrics.awaitingCustomer.length || null)
 
 function logout() {
   auth.logout()
@@ -54,6 +59,21 @@ function logout() {
     <div class="hidden w-40 md:block">
       <NSelect :model-value="auth.branchId" :options="branchOptions" size="sm" @update:model-value="auth.setBranch" />
     </div>
+
+    <!-- مساعدة سريعة -->
+    <button
+      v-if="auth.can('support')"
+      type="button"
+      class="relative grid size-10 shrink-0 place-items-center brut bg-paper brut-press-sm cursor-pointer"
+      :title="t('support.helpNow')"
+      @click="router.push('/support')"
+    >
+      <LifeBuoy class="size-4" :stroke-width="3" />
+      <span
+        v-if="supportBadge"
+        class="absolute -top-1.5 -end-1.5 grid min-w-5 place-items-center brut-thin bg-tomato px-1 text-[10px] text-paper tabular"
+      >{{ supportBadge }}</span>
+    </button>
 
     <button
       type="button"

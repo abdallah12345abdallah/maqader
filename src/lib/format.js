@@ -84,6 +84,20 @@ export function fmtDuration(minutes, locale = 'ar') {
   return h ? `${h}h ${r}m` : `${r}m`
 }
 
+/** مدة طويلة بالدقائق → "3ي 4س" / "2س 15د" — لعدّادات الـ SLA */
+export function fmtSpan(minutes, locale = 'ar') {
+  const total = Math.max(0, Math.round(Math.abs(Number(minutes) || 0)))
+  const d = Math.floor(total / 1440)
+  const h = Math.floor((total % 1440) / 60)
+  const m = total % 60
+  if (locale === 'ar') {
+    if (d) return `${d}ي ${h}س`
+    return h ? `${h}س ${m}د` : `${m}د`
+  }
+  if (d) return `${d}d ${h}h`
+  return h ? `${h}h ${m}m` : `${m}m`
+}
+
 /** دقائق منقضية من الآن — لعدّادات المطبخ */
 export function elapsedMinutes(since) {
   return (Date.now() - new Date(since).getTime()) / 60000

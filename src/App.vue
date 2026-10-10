@@ -5,9 +5,11 @@ import BrandMark from '@/components/shared/BrandMark.vue'
 import { NToasts } from '@/components/ui'
 import { useUiStore } from '@/stores/ui'
 import { useOpsStore } from '@/stores/ops'
+import { useSupportStore } from '@/stores/support'
 
 const ui = useUiStore()
 const ops = useOpsStore()
+const support = useSupportStore()
 const { locale } = useI18n()
 
 ui.apply()
@@ -19,6 +21,7 @@ onMounted(() => {
   requestAnimationFrame(() => {
     setTimeout(() => {
       ops.init()
+      support.init()
       ui.booting = false
     }, 30)
   })

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { useOpsStore } from '@/stores/ops'
+import { useSupportStore } from '@/stores/support'
 
 const emit = defineEmits(['navigate'])
 const route = useRoute()
@@ -17,6 +18,7 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const ui = useUiStore()
 const ops = useOpsStore()
+const support = useSupportStore()
 
 const items = computed(() => NAV.filter((n) => auth.can(n.module)))
 const collapsed = computed(() => ui.sidebarCollapsed)
@@ -25,9 +27,11 @@ const isActive = (item) =>
   item.route === '/' ? route.path === '/' : route.path.startsWith(item.route)
 
 const openTicketsCount = computed(() => ops.openOrders.length)
+const openSupportCount = computed(() => support.openTickets.length)
 
 const badgeFor = (item) => {
   if (item.key === 'pos' || item.key === 'kds') return openTicketsCount.value || null
+  if (item.key === 'support') return openSupportCount.value || null
   return null
 }
 </script>

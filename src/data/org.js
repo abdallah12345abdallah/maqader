@@ -13,6 +13,17 @@ export const COMPANY = {
   fiscalYearStart: '01-01',
 }
 
+/** بيانات الإصدار والترخيص — تظهر في فحص النظام وتتبعت مع تذاكر الدعم */
+export const APP_INFO = {
+  version: '1.4.2',
+  build: '2026-09-28',
+  edition: 'restaurant',
+  licenseId: 'MQD-EG-00418',
+  licensedTo: 'مطاعم مقادير',
+  supportPlanId: 'PLAN-PRO',
+  seats: 12,
+}
+
 export const BRANCHES = [
   { id: 'BR-01', code: 'MAADI', nameAr: 'فرع المعادي', nameEn: 'Maadi', tone: 'tomato', seats: 86, isDefault: true },
   { id: 'BR-02', code: 'ZMLK', nameAr: 'فرع الزمالك', nameEn: 'Zamalek', tone: 'berry', seats: 64 },
@@ -63,6 +74,8 @@ export const ACCESS = {
   recipes: ['owner', 'manager', 'chef', 'accountant'],
   inventory: ['owner', 'manager', 'storekeeper', 'chef'],
   accounting: ['owner', 'manager', 'accountant'],
+  // الدعم متاح لكل الأدوار — أي حد على الأرض يقدر يفتح تذكرة
+  support: ['owner', 'manager', 'accountant', 'chef', 'cashier', 'storekeeper'],
   settings: ['owner', 'manager'],
 }
 

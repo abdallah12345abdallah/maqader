@@ -94,6 +94,18 @@ export const NAV = [
       { key: 'shifts', route: '/accounting/shifts' },
     ],
   },
+  {
+    key: 'support',
+    route: '/support',
+    icon: 'LifeBuoy',
+    module: 'support',
+    tone: 'plum',
+    children: [
+      { key: 'supportTickets', route: '/support' },
+      { key: 'knowledge', route: '/support/kb' },
+      { key: 'systemHealth', route: '/support/health' },
+    ],
+  },
   { key: 'settings', route: '/settings', icon: 'SlidersHorizontal', module: 'settings', tone: 'ink' },
 ]
 

@@ -20,6 +20,18 @@ globalThis.localStorage = {
 
 import { setActivePinia, createPinia } from 'pinia'
 import { INGREDIENTS } from '../src/data/catalog.js'
+import { NAV } from '../src/lib/constants.js'
+import { ACCESS } from '../src/data/org.js'
+import {
+  buildSupportSeed, planUsage, KB_ARTICLES, SUPPORT_CATEGORIES, SUPPORT_PRIORITIES,
+  SUPPORT_STATUS, supportCategoryMap,
+} from '../src/data/support.js'
+import {
+  ticketSla, ticketMetrics, searchArticles, suggestArticles, runHealthChecks, healthScore,
+  agentForCategory,
+} from '../src/lib/support.js'
+import arLocale from '../src/locales/ar.json'
+import enLocale from '../src/locales/en.json'
 import { RECIPES } from '../src/data/recipes.js'
 import { CATEGORIES } from '../src/data/menu.js'
 import { buildSeed } from '../src/data/seed.js'
@@ -395,6 +407,277 @@ assert(
   Math.abs(catalog.costOf('M-PIZZAMARG').unitCost - margBefore) < 0.01,
   'إرجاع الكتالوج بيرجّع التكلفة الأصلية',
 )
+
+
+/* ---------------- 8) خدمة الدعم ---------------- */
+section('خدمة الدعم')
+
+const supportSeed = buildSupportSeed()
+const supTickets = supportSeed.tickets
+
+assert(supTickets.length >= 20, 'تاريخ تذاكر كافي للشاشات', `${supTickets.length} تذكرة`)
+assert(
+  new Set(supTickets.map((t) => t.number)).size === supTickets.length,
+  'أرقام التذاكر فريدة',
+)
+assert(
+  buildSupportSeed().tickets.map((t) => t.id).join(',') === supTickets.map((t) => t.id).join(','),
+  'مولّد التذاكر حتمي (نفس الترتيب والمعرّفات)',
+)
+
+const badRef = supTickets.filter(
+  (t) => !supportCategoryMap.has(t.categoryId) || !SUPPORT_STATUS[t.status] ||
+    !SUPPORT_PRIORITIES.some((p) => p.id === t.priorityId),
+)
+assert(badRef.length === 0, 'كل تذكرة ليها تصنيف وأولوية وحالة معروفين', `${badRef.length} تذكرة`)
+
+const noMsg = supTickets.filter((t) => !t.messages?.length)
+assert(noMsg.length === 0, 'كل تذكرة فيها رسالة واحدة على الأقل', `${noMsg.length}`)
+
+const unordered = supTickets.filter((t) =>
+  t.messages.some((m, i) => i > 0 && new Date(m.at) < new Date(t.messages[i - 1].at)),
+)
+assert(unordered.length === 0, 'رسائل كل تذكرة مرتّبة زمنيًا', `${unordered.length} تذكرة`)
+
+const supStatuses = new Set(supTickets.map((t) => t.status))
+assert(
+  ['open', 'in_progress', 'waiting_customer', 'resolved', 'closed'].every((k) => supStatuses.has(k)),
+  'بيانات العرض فيها كل الحالات (مفتوحة وقيد المعالجة وبانتظار العميل ومحلولة ومغلقة)',
+  [...supStatuses].join(', '),
+)
+
+/* --- حساب الـ SLA --- */
+const slaCases = supTickets.map((t) => ({ t, s: ticketSla(t) }))
+
+const wrongTarget = slaCases.filter(
+  (x) => x.s.responseTargetMins !== SUPPORT_PRIORITIES.find((p) => p.id === x.t.priorityId).responseMins,
+)
+assert(wrongTarget.length === 0, 'هدف أول رد مطابق لأولوية التذكرة', `${wrongTarget.length}`)
+
+const answered = slaCases.filter((x) => x.s.firstResponseMins !== null)
+const metMismatch = answered.filter(
+  (x) => x.s.responseMet !== x.s.firstResponseMins <= x.s.responseTargetMins,
+)
+assert(metMismatch.length === 0, 'الالتزام بأول رد محسوب صح لكل تذكرة', `${metMismatch.length}`)
+
+const breachedSeed = slaCases.filter((x) => x.s.state === 'breached')
+assert(breachedSeed.length > 0, 'في تذاكر متأخرة عن الـ SLA عشان الشاشة تبان حقيقية',
+  `${breachedSeed.length} تذكرة`)
+
+// تذكرة توقف تشغيل عدى عليها 3 ساعات بدون رد = متأخرة
+const nowMs = Date.now()
+const outage = {
+  id: 'T-OUT', number: 'SP-9001', priorityId: 'P1', status: 'open',
+  createdAt: new Date(nowMs - 180 * 60000).toISOString(),
+  messages: [], pauses: [],
+}
+const outageSla = ticketSla(outage, nowMs)
+assert(outageSla.state === 'breached' && outageSla.remainingMins < 0,
+  'تذكرة توقف تشغيل بدون رد بقت متأخرة', `remaining=${round(outageSla.remainingMins, 0)}د`)
+assert(Math.abs(outageSla.clockMins - 180) < 1, 'عدّاد التذكرة = الزمن المنقضي', `${outageSla.clockMins}`)
+
+// نفس التذكرة لكن مستنية رد العميل ساعتين: العدّاد بيتوقف
+const paused = {
+  ...outage,
+  status: 'waiting_customer',
+  firstResponseAt: new Date(nowMs - 170 * 60000).toISOString(),
+  pauses: [{ from: new Date(nowMs - 120 * 60000).toISOString(), to: null }],
+}
+const pausedSla = ticketSla(paused, nowMs)
+assert(Math.abs(pausedSla.pausedMins - 120) < 1, 'وقت انتظار رد العميل محسوب', `${pausedSla.pausedMins}د`)
+assert(Math.abs(pausedSla.clockMins - 60) < 1, 'العدّاد بيستبعد وقت انتظار العميل', `${pausedSla.clockMins}د`)
+assert(pausedSla.state === 'paused', 'حالة الـ SLA «متوقف» وقت انتظار العميل', pausedSla.state)
+
+// تذكرة محلولة: زمن الحل بيستبعد الانتظار كمان
+const resolvedCase = {
+  ...outage,
+  status: 'resolved',
+  firstResponseAt: new Date(nowMs - 175 * 60000).toISOString(),
+  resolvedAt: new Date(nowMs - 30 * 60000).toISOString(),
+  pauses: [{ from: new Date(nowMs - 150 * 60000).toISOString(), to: new Date(nowMs - 90 * 60000).toISOString() }],
+}
+const resolvedSla = ticketSla(resolvedCase, nowMs)
+assert(Math.abs(resolvedSla.resolutionMins - 90) < 1, 'زمن الحل = المنقضي − وقت انتظار العميل',
+  `${resolvedSla.resolutionMins}د`)
+assert(resolvedSla.state === 'met', 'التذكرة المحلولة جوه الـ SLA بتتحسب ملتزمة', resolvedSla.state)
+
+/* --- مؤشرات الخدمة --- */
+const supMetrics = ticketMetrics(supTickets)
+assert(
+  supMetrics.open === supTickets.filter((t) => SUPPORT_STATUS[t.status].isOpen).length,
+  'عدد التذاكر المفتوحة مطابق للحالات المفتوحة', `${supMetrics.open}`,
+)
+assert(
+  supMetrics.responseSlaPct >= 0 && supMetrics.responseSlaPct <= 1 &&
+    supMetrics.resolveSlaPct >= 0 && supMetrics.resolveSlaPct <= 1,
+  'نسب الالتزام بين 0% و100%',
+  `${round(supMetrics.responseSlaPct * 100, 0)}% / ${round(supMetrics.resolveSlaPct * 100, 0)}%`,
+)
+assert(supMetrics.responseSlaPct > 0.6, 'الالتزام بأول رد في مستوى معقول للعرض',
+  `${round(supMetrics.responseSlaPct * 100, 0)}%`)
+assert(supMetrics.avgFirstResponseMins > 0, 'متوسط أول رد محسوب', `${supMetrics.avgFirstResponseMins}د`)
+assert(supMetrics.csatAvg >= 1 && supMetrics.csatAvg <= 5, 'متوسط رضا العميل من 1 لـ 5',
+  `${supMetrics.csatAvg}`)
+assert(
+  supMetrics.breached.every((t) => SUPPORT_STATUS[t.status].isOpen),
+  'التذاكر المتأخرة كلها لسه مفتوحة',
+)
+
+const supUsage = planUsage(supTickets)
+assert(supUsage.usedHours >= 0 && supUsage.usedHours <= supUsage.includedHours * 3,
+  'ساعات الباقة المستخدمة رقم منطقي', `${supUsage.usedHours} من ${supUsage.includedHours}`)
+assert(supUsage.daysToRenew >= 0 && supUsage.daysToRenew <= 32, 'تاريخ تجديد الباقة محسوب',
+  `${supUsage.daysToRenew} يوم`)
+
+/* --- التوجيه التلقائي --- */
+const unrouted = SUPPORT_CATEGORIES.filter((c) => !agentForCategory(c.id))
+assert(unrouted.length === 0, 'كل تصنيف له مسؤول دعم', `${unrouted.length}`)
+
+/* --- قاعدة المعرفة --- */
+const printerHit = searchArticles('الطابعة مش بتطبع', { locale: 'ar' })
+assert(printerHit[0]?.id === 'KB-PRINTER', 'البحث عن مشكلة الطابعة بيرجّع مقالها أولًا',
+  printerHit[0]?.id || 'مافيش نتيجة')
+assert(
+  searchArticles('طباعه فاتوره', { locale: 'ar' }).some((a) => a.id === 'KB-PRINTER'),
+  'البحث بيتعامل مع اختلاف الهمزة والتاء المربوطة',
+)
+assert(searchArticles('printer receipt', { locale: 'en' })[0]?.id === 'KB-PRINTER',
+  'البحث بالإنجليزي بيرجّع نفس المقال')
+assert(searchArticles('زقزقة سمسمية', { locale: 'ar' }).length === 0,
+  'البحث عن كلام غير موجود بيرجّع فاضي')
+assert(
+  searchArticles('', { locale: 'ar', categoryId: 'CAT-INV' }).every((a) => a.categoryId === 'CAT-INV'),
+  'فلتر التصنيف في قاعدة المعرفة شغّال',
+)
+
+const suggested = suggestArticles({ subject: 'الأوردر مش ظاهر في المطبخ', categoryId: 'CAT-KDS' }, { locale: 'ar' })
+assert(suggested.length > 0 && suggested.length <= 3, 'الحلول المقترحة 3 كحد أقصى', `${suggested.length}`)
+assert(suggested[0].id === 'KB-KDS', 'الحل المقترح الأول مطابق للمشكلة', suggested[0].id)
+assert(
+  new Set(suggested.map((a) => a.id)).size === suggested.length,
+  'الحلول المقترحة بدون تكرار',
+)
+
+const badArticle = KB_ARTICLES.filter(
+  (a) =>
+    !supportCategoryMap.has(a.categoryId) ||
+    !a.stepsAr?.length || !a.stepsEn?.length ||
+    !a.titleAr || !a.titleEn ||
+    (a.route && !a.route.startsWith('/')),
+)
+assert(badArticle.length === 0, 'كل مقال فيه عنوان وخطوات بالعربي والإنجليزي ومسار صالح',
+  badArticle.map((a) => a.id).join(', '))
+
+/* --- فحص صحة النظام --- */
+const healthy = runHealthChecks({ ledgerBalanced: true, wastePct: 0.02, foodCostPct: 0.3, lastCountDays: 3 })
+const healthyScore = healthScore(healthy)
+assert(healthyScore.status === 'ok' && healthyScore.score === 1,
+  'نظام سليم = درجة صحة كاملة', `${round(healthyScore.score * 100, 0)}%`)
+
+const sick = runHealthChecks({
+  ledgerBalanced: false, ledgerDebit: 100, ledgerCredit: 90,
+  negativeStockRows: 3, recipeErrors: ['M-X'], wastePct: 0.07, foodCostPct: 0.52, lastCountDays: 40,
+})
+const sickScore = healthScore(sick)
+assert(sickScore.fail === 3 && sickScore.warn >= 3, 'الفحص بيمسك الخلل في الدفتر والمخزون والوصفات',
+  `${sickScore.fail} خطأ · ${sickScore.warn} تحذير`)
+assert(sickScore.score < healthyScore.score, 'درجة الصحة بتنزل مع الأخطاء',
+  `${round(sickScore.score * 100, 0)}%`)
+assert(
+  healthy.every((c) => c.nameAr && c.nameEn && c.detailAr && c.detailEn),
+  'كل فحص له اسم وتفصيل بالعربي والإنجليزي',
+)
+
+/* --- عمليات المستخدم على التذاكر --- */
+const { useSupportStore } = await import('../src/stores/support.js')
+const supportStore = useSupportStore()
+supportStore.init()
+supportStore.resetSupport()
+
+const seedCount = supportStore.tickets.length
+const created = supportStore.createTicket({
+  subject: 'الطابعة واقفة في المعادي',
+  body: 'الطابعة مش بتطبع خلاص والفرع زحمة، محتاجين حل بسرعة.',
+  categoryId: 'CAT-HW',
+  priorityId: 'P1',
+  branchId: 'BR-01',
+  userId: 'U-05',
+})
+assert(created.number.startsWith('SP-') && created.status === 'open', 'فتح تذكرة بيرجّع رقم وحالة مفتوحة',
+  created.number)
+assert(supportStore.tickets.length === seedCount + 1, 'التذكرة الجديدة ظهرت في القائمة')
+assert(
+  created.messages.some((m) => m.author === 'system' && m.bodyAr.includes('15')),
+  'إيصال الاستلام بيوضّح زمن أول رد حسب الأولوية',
+)
+assert(created.assigneeId === agentForCategory('CAT-HW'), 'التذكرة اتوجّهت لمسؤول التصنيف',
+  created.assigneeId)
+assert(
+  !supportStore.tickets.some((t, i) => i > 0 && new Date(t.createdAt) > new Date(supportStore.tickets[i - 1].createdAt)),
+  'التذاكر مرتّبة من الأحدث للأقدم',
+)
+
+const replied = supportStore.reply(created.id, 'جرّبنا نطفيها وتشغّلها ونفس المشكلة.')
+assert(replied.status === 'in_progress' && replied.messages.length === created.messages.length + 1,
+  'رد العميل بيتسجّل وبيحوّل التذكرة لقيد المعالجة', replied.status)
+
+const resolvedLive = supportStore.resolveTicket(created.id)
+assert(resolvedLive.status === 'resolved' && resolvedLive.resolvedAt, 'إقفال التذكرة بيسجّل وقت الحل')
+assert(!ticketSla(resolvedLive).status.isOpen, 'التذكرة المحلولة مش محسوبة مفتوحة')
+
+const ratedLive = supportStore.rateTicket(created.id, 5, 'رد سريع')
+assert(ratedLive.csat?.stars === 5, 'تقييم الخدمة بيتحفظ على التذكرة')
+
+const reopened = supportStore.reopenTicket(created.id, 'المشكلة رجعت تاني.')
+assert(reopened.status === 'in_progress' && reopened.reopenCount === 1 && !reopened.resolvedAt,
+  'إعادة الفتح بترجّع التذكرة للشغل وبتعدّ المرات', `reopen=${reopened.reopenCount}`)
+
+// تعديل تذكرة من بيانات العرض بينقلها للطبقة الحيّة والأصل يفضل سليم
+const seedTicket = supportStore.tickets.find((t) => t.id.startsWith('SUP-') && !t.id.endsWith('-L'))
+supportStore.reply(seedTicket.id, 'أي تحديث؟')
+assert(
+  supportStore.live.tickets.some((t) => t.id === seedTicket.id),
+  'تذكرة العرض بتنتقل للطبقة الحيّة أول تعديل',
+)
+assert(
+  supportStore.seed.tickets.find((t) => t.id === seedTicket.id).messages.length <
+    supportStore.byId(seedTicket.id).messages.length,
+  'بيانات العرض الأصلية ما اتغيّرتش',
+)
+
+supportStore.voteArticle('KB-PRINTER', true)
+assert(
+  supportStore.articles.find((a) => a.id === 'KB-PRINTER').myVote === 1,
+  'تصويت «كان مفيدًا» بيتحفظ',
+)
+
+supportStore.resetSupport()
+assert(supportStore.tickets.length === seedCount && supportStore.live.tickets.length === 0,
+  'مسح تذاكر المستخدم بيرجّع بيانات العرض بس', `${supportStore.tickets.length}`)
+
+/* ---------------- 9) القائمة والصلاحيات والترجمة ---------------- */
+section('القائمة والصلاحيات والترجمة')
+
+const navNoAccess = NAV.filter((n) => !ACCESS[n.module])
+assert(navNoAccess.length === 0, 'كل بند في القائمة له صلاحية معرّفة',
+  navNoAccess.map((n) => n.key).join(', '))
+
+const navKeys = NAV.flatMap((n) => [n.key, ...(n.children || []).map((c) => c.key)])
+const missingNav = navKeys.filter((k) => !arLocale.nav[k] || !enLocale.nav[k])
+assert(missingNav.length === 0, 'كل بنود القائمة مترجمة عربي وإنجليزي', missingNav.join(', '))
+
+const localeGaps = []
+for (const sectionKey of Object.keys(arLocale)) {
+  for (const key of Object.keys(arLocale[sectionKey])) {
+    if (!enLocale[sectionKey] || enLocale[sectionKey][key] === undefined) localeGaps.push(`${sectionKey}.${key}`)
+  }
+}
+for (const sectionKey of Object.keys(enLocale)) {
+  for (const key of Object.keys(enLocale[sectionKey])) {
+    if (!arLocale[sectionKey] || arLocale[sectionKey][key] === undefined) localeGaps.push(`${sectionKey}.${key}`)
+  }
+}
+assert(localeGaps.length === 0, 'ملفات الترجمة متطابقة المفاتيح', localeGaps.slice(0, 5).join(', '))
 
 /* ---------------- النتيجة ---------------- */
 console.log(`\n${failures === 0 ? '✓ كل الفحوصات نجحت' : `✗ ${failures} فحص فشل`} (${checks} فحص)`)

@@ -35,6 +35,11 @@ const routes = [
       { path: 'accounting/expenses', name: 'expenses', component: () => import('@/views/accounting/ExpensesView.vue'), meta: { module: 'accounting', titleKey: 'nav.expenses' } },
       { path: 'accounting/shifts', name: 'shifts', component: () => import('@/views/accounting/ShiftsView.vue'), meta: { module: 'accounting', titleKey: 'nav.shifts' } },
 
+      { path: 'support', name: 'support', component: () => import('@/views/support/SupportView.vue'), meta: { module: 'support', titleKey: 'nav.supportTickets' } },
+      { path: 'support/kb', name: 'knowledge', component: () => import('@/views/support/KnowledgeView.vue'), meta: { module: 'support', titleKey: 'nav.knowledge' } },
+      { path: 'support/health', name: 'systemHealth', component: () => import('@/views/support/HealthView.vue'), meta: { module: 'support', titleKey: 'nav.systemHealth' } },
+      { path: 'support/tickets/:id', name: 'supportTicket', component: () => import('@/views/support/TicketView.vue'), meta: { module: 'support', titleKey: 'nav.supportTickets' } },
+
       { path: 'settings', name: 'settings', component: () => import('@/views/settings/SettingsView.vue'), meta: { module: 'settings', titleKey: 'nav.settings' } },
     ],
   },

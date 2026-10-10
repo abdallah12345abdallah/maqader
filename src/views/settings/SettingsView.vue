@@ -11,12 +11,14 @@ import { cn } from '@/lib/utils'
 import { TONES } from '@/lib/constants'
 import { useCatalogStore } from '@/stores/catalog'
 import { useOpsStore } from '@/stores/ops'
+import { useSupportStore } from '@/stores/support'
 import { useUiStore } from '@/stores/ui'
 import { useFmt } from '@/composables/useFmt'
 
 const { t } = useI18n()
 const catalog = useCatalogStore()
 const ops = useOpsStore()
+const support = useSupportStore()
 const ui = useUiStore()
 const fmt = useFmt()
 
@@ -55,6 +57,10 @@ const userColumns = computed(() => [
 function resetLive() {
   ops.resetLive()
   ui.toast(t('settings.resetDone'), 'sky', t('settings.resetLiveHint'))
+}
+function resetSupport() {
+  support.resetSupport()
+  ui.toast(t('settings.resetDone'), 'sky', t('support.resetMineHint'))
 }
 function resetCatalog() {
   catalog.resetOverrides()
@@ -212,6 +218,15 @@ function resetCatalog() {
             </p>
           </div>
           <NButton tone="berry" variant="soft" size="sm" @click="resetCatalog">
+            <RotateCcw class="size-4" :stroke-width="3" />{{ t('common.reset') }}
+          </NButton>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3 brut-thin bg-paper-2 px-3 py-2.5">
+          <div>
+            <p class="text-sm font-extrabold">{{ t('support.resetMine') }}</p>
+            <p class="text-[11px] font-bold opacity-60">{{ t('support.resetMineHint') }}</p>
+          </div>
+          <NButton tone="plum" variant="soft" size="sm" @click="resetSupport">
             <RotateCcw class="size-4" :stroke-width="3" />{{ t('common.reset') }}
           </NButton>
         </div>

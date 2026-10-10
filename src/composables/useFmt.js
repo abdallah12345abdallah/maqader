@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import {
   fmtMoney, fmtMoneyShort, fmtNum, fmtQty, fmtPct, fmtPctRaw,
-  fmtDate, fmtDayMonth, fmtTime, fmtDateTime, fmtDuration, fmtClock,
+  fmtDate, fmtDayMonth, fmtTime, fmtDateTime, fmtDuration, fmtSpan, fmtClock,
 } from '@/lib/format'
 import { unitLabel } from '@/lib/units'
 
@@ -27,6 +27,7 @@ export function useFmt() {
     time: (d) => fmtTime(d, locale.value),
     dateTime: (d) => fmtDateTime(d, locale.value),
     duration: (m) => fmtDuration(m, locale.value),
+    span: (m) => fmtSpan(m, locale.value),
     clock: fmtClock,
     unit: (code) => unitLabel(code, locale.value),
     /** اسم أي كيان فيه nameAr/nameEn */
