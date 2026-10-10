@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Delete, LogIn } from 'lucide-vue-next'
+import BrandMark from '@/components/shared/BrandMark.vue'
 import { NButton, NBadge } from '@/components/ui'
 import { USERS, ROLES, COMPANY } from '@/data/org'
 import { cn } from '@/lib/utils'
@@ -55,7 +56,9 @@ function quickLogin(u) {
       <!-- الهوية -->
       <section class="flex flex-col justify-between gap-6 brut bg-saffron shadow-brut-lg p-6 sm:p-8">
         <div>
-          <div class="grid size-16 place-items-center brut bg-paper shadow-brut text-3xl">🍳</div>
+          <div class="grid size-16 place-items-center brut bg-paper shadow-brut">
+            <BrandMark class="size-11" live />
+          </div>
           <h1 class="mt-5 font-display text-5xl leading-none text-ink sm:text-6xl">
             {{ t('common.appName') }}
           </h1>

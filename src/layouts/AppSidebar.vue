@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
+import BrandMark from '@/components/shared/BrandMark.vue'
 import Icon from '@/components/shared/Icon.vue'
 import { NAV, TONES } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -40,11 +41,9 @@ const badgeFor = (item) => {
   >
     <!-- الهوية -->
     <div class="flex items-center gap-2.5 border-b-[3px] border-ink p-3">
-      <RouterLink
-        to="/"
-        class="grid size-11 shrink-0 place-items-center brut bg-saffron shadow-brut-sm text-xl"
-        @click="emit('navigate')"
-      >🍳</RouterLink>
+      <RouterLink to="/" class="block shrink-0" @click="emit('navigate')">
+        <BrandMark class="size-11" />
+      </RouterLink>
       <div v-if="!collapsed" class="min-w-0 flex-1">
         <p class="font-display text-lg leading-none">{{ t('common.appName') }}</p>
         <p class="truncate text-[10px] font-bold opacity-60">{{ t('common.tagline') }}</p>

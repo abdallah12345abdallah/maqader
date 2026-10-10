@@ -1,5 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="2" y="2" width="60" height="60" rx="10" fill="#FFC300" stroke="#111111" stroke-width="4"/>
-  <path d="M14 40c0-10 8-18 18-18s18 8 18 18z" fill="#FF4D2E" stroke="#111111" stroke-width="4" stroke-linejoin="round"/>
-  <line x1="10" y1="46" x2="54" y2="46" stroke="#111111" stroke-width="5" stroke-linecap="round"/>
+  <style>
+    /* الوضع الداكن: البلاطة تبقى حبر وجدار القلّاية يبقى ورق — نفس لغة النظام */
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #15120f }
+      .ink { stroke: #fffdf5 }
+    }
+  </style>
+  <rect class="tile" width="64" height="64" rx="14" fill="#fffdf5"/>
+  <!-- اللهب -->
+  <path d="M41 44.5C44.8 48.6 44.2 53.6 41 57C37.8 53.6 37.2 48.6 41 44.5Z" fill="#ff4d2e"/>
+  <path d="M34 47C36.9 50 36.4 54 34 56.6C31.6 54 31.1 50 34 47Z" fill="#ffc300"/>
+  <path d="M47.5 46.5C50.6 49.8 50.1 53.9 47.5 56.6C44.9 53.9 44.4 49.8 47.5 46.5Z" fill="#ffc300"/>
+  <!-- القلّاية: اليد ثم جوف العين ثم الجدار -->
+  <path class="ink" d="M28 32L15 50" fill="none" stroke="#14110f" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="34" cy="26" r="11" fill="#ffc300"/>
+  <circle class="ink" cx="34" cy="26" r="15" fill="none" stroke="#14110f" stroke-width="8"/>
 </svg>

@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import BrandMark from '@/components/shared/BrandMark.vue'
 import { NToasts } from '@/components/ui'
 import { useUiStore } from '@/stores/ui'
 import { useOpsStore } from '@/stores/ops'
@@ -27,7 +28,7 @@ onMounted(() => {
 <template>
   <div v-if="ui.booting" class="grid min-h-screen place-items-center bg-paper p-6">
     <div class="flex flex-col items-center gap-5 text-center">
-      <div class="grid size-24 place-items-center brut bg-saffron shadow-brut-lg text-5xl animate-brut-pulse">🍳</div>
+      <BrandMark class="size-28" live />
       <div>
         <h1 class="font-display text-4xl">{{ $t('common.appName') }}</h1>
         <p class="mt-1 text-sm font-bold opacity-70">{{ $t('common.tagline') }}</p>
